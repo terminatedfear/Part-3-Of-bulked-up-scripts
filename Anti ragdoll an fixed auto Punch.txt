@@ -1,0 +1,163 @@
+-- Terminated_Fear Styled Bulked Up Anti-Ragdoll & Auto Punch GUI (Improved)
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local localChar = player.Character or player.CharacterAdded:Wait()
+
+-- ScreenGui
+local gui = Instance.new("ScreenGui")
+gui.Name = "Terminated_Fear_BulkedUp"
+gui.Parent = playerGui
+
+-- Main Frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 300, 0, 230)
+frame.Position = UDim2.new(0.5, -150, 0.5, -115)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
+
+-- Smooth corners
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = frame
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1,0,0,30)
+title.BackgroundTransparency = 1
+title.Text = "Terminated_Fear Bulked Up"
+title.TextColor3 = Color3.fromRGB(0, 255, 170)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.Parent = frame
+
+-- Info Label
+local info = Instance.new("TextLabel")
+info.Size = UDim2.new(0.9,0,0,60)
+info.Position = UDim2.new(0.05,0,0.1,0)
+info.BackgroundTransparency = 1
+info.Text = "Press R to un-ragdoll yourself.\nToggle Auto Punch to attack players."
+info.TextColor3 = Color3.fromRGB(255,255,255)
+info.TextScaled = true
+info.TextWrapped = true
+info.Font = Enum.Font.Gotham
+info.Parent = frame
+
+-- Anti-Ragdoll Button
+local ragdollBtn = Instance.new("TextButton")
+ragdollBtn.Size = UDim2.new(0, 260, 0, 40)
+ragdollBtn.Position = UDim2.new(0, 20, 0, 80)
+ragdollBtn.Text = "Un-Ragdoll (R)"
+ragdollBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+ragdollBtn.TextColor3 = Color3.fromRGB(255,255,255)
+ragdollBtn.Font = Enum.Font.GothamBold
+ragdollBtn.TextSize = 18
+ragdollBtn.Parent = frame
+
+local ragdollCorner = Instance.new("UICorner")
+ragdollCorner.CornerRadius = UDim.new(0,8)
+ragdollCorner.Parent = ragdollBtn
+
+-- Auto Punch Button
+local autoPunchBtn = Instance.new("TextButton")
+autoPunchBtn.Size = UDim2.new(0,260,0,40)
+autoPunchBtn.Position = UDim2.new(0,20,0,135)
+autoPunchBtn.Text = "Toggle Auto Punch"
+autoPunchBtn.BackgroundColor3 = Color3.fromRGB(0,200,100)
+autoPunchBtn.TextColor3 = Color3.fromRGB(255,255,255)
+autoPunchBtn.Font = Enum.Font.GothamBold
+autoPunchBtn.TextSize = 18
+autoPunchBtn.Parent = frame
+
+local punchCorner = Instance.new("UICorner")
+punchCorner.CornerRadius = UDim.new(0,8)
+punchCorner.Parent = autoPunchBtn
+
+-- Anti-Ragdoll Function
+local function unRagdoll()
+    local char = player.Character
+    if not char then return end
+    local humanoid = char:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.PlatformStand = false
+    end
+
+    -- Remove any ragdoll forces
+    for _, obj in ipairs(char:GetDescendants()) do
+        if obj:IsA("BodyVelocity") or obj:IsA("BodyGyro") or obj.Name:lower():find("ragdoll") then
+            obj:Destroy()
+        end
+    end
+
+    -- Re-enable all Motor6Ds
+    for _, m6d in ipairs(char:GetDescendants()) do
+        if m6d:IsA("Motor6D") then
+            m6d.Enabled = true
+        end
+    end
+end
+
+-- Bind Anti-Ragdoll to R key & button
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.R then
+        unRagdoll()
+    end
+end)
+
+ragdollBtn.MouseButton1Click:Connect(function()
+    unRagdoll()
+end)
+
+-- Auto Punch Logic
+local autoPunchEnabled = false
+
+local function findPunchTool()
+    for _, tool in ipairs(player.Backpack:GetChildren()) do
+        if tool.Name:lower():find("punch") then
+            return tool
+        end
+    end
+    if localChar:FindFirstChild("Punch") then
+        return localChar:FindFirstChild("Punch")
+    end
+end
+
+local function teleportToRandomPlayer()
+    local targetList = {}
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            table.insert(targetList, p)
+        end
+    end
+    if #targetList > 0 then
+        local target = targetList[math.random(1,#targetList)]
+        local hrp = localChar:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.CFrame = target.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
+        end
+    end
+end
+
+local function autoPunch()
+    while autoPunchEnabled do
+        local tool = findPunchTool()
+        if tool then
+            tool.Parent = localChar
+            tool:Activate()
+            teleportToRandomPlayer()
+        end
+        task.wait(0.5)
+    end
+end
+
+autoPunchBtn.MouseButton1Click:Connect(function()
+    autoPunchEnabled = not autoPunchEnabled
+    if autoPunchEnabled then
+        autoPunch()
+    end
+end)
